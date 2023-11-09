@@ -17,7 +17,7 @@ def avg_x_axes(a, b):
 if __name__ == "__main__":
 
     # load the image
-    img = imread(r"sea.jpg", 1)
+    img = imread(r"pics/sea.jpg", 1)
 
     # find the horizon and save as 2 points
     h1, h2 = find_horizon(img)

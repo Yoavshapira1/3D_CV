@@ -45,7 +45,7 @@ if __name__=="__main__":
 
 	# reading the image
 	# img = cv2.imread('Q2.jpeg', 1)
-	img = cv2.imread(r"giraffe.jpg", 1)
+	img = cv2.imread(r"pics/giraffe.jpg", 1)
 	# close = cv2.imread("Q3_close.jpeg")
 
 	# displaying the image
