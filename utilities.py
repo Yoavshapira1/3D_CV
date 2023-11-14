@@ -2,46 +2,80 @@ import cv2
 import numpy as np
 
 
-def find_horizon(img) -> [tuple, tuple]:
+def rotate_image(image, angle):
     """
-    find the horizon line in the image, represented by 2 points
-    :param img: image of a seashore
-    :return: two points on the horizon line
+    Rotating a given image in a given angle
+    The angle should be in degrees, and should be less than 90 degrees in order to prevent vertical flip
+    :return: the rotated image
     """
-    import cv2
-    import numpy as np
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2)
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 5, 50)
-    cv2.imshow("", edges)
-    cv2.waitKey(0)
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (width, height))
 
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10)
-
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            slope = (y2 - y1) / (x2 - x1)
-            if abs(slope) < 0.01:
-                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-
-    cv2.imshow("", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    return rotated_image
 
 
-def sample_object(img) -> [tuple, tuple]:
+def get_rotation_angle(h1, h2):
     """
-    given an img, ask the user for input to detect the reference object, and return the lower & upper points of it.
-    The algorithm is: . . .
-    :return: lowest and highest points of the reference object
+    Calculating the angle (in degrees) that the image should be rotated for the horizon to be horizontal.
+    This will make the objects perpendicular the plane, and then we can average the x-values to get a vertical
+    line from 2 points (in relation to the plane)
+    :param h1: points on the horizon
+    :param h2: another point on the horizon
+    :return: the angle, in degrees (angle <= 90)
     """
-    pass
+    dx = h2[0] - h1[0]
+    dy = h2[1] - h1[1]
+
+    # Calculate the angle in radians
+    angle = np.arctan2(dy, dx)
+    if np.abs(angle) >= np.pi // 2:
+        angle = -(np.pi - angle)
+
+    # Convert radians to degrees
+    angle_deg = np.degrees(angle)
+
+    return angle_deg
 
 
-def find_wave(img) -> [tuple, tuple]:
-    """
-    given an img of a seashore, find the wave as two points - higher and lower.
-    :return: lowest and highest points of the wave
-    """
-    pass
+def rotate_point(point, center, angle):
+    angle_rad = np.radians(angle)
+    x, y = point[0] - center[0], point[1] - center[1]
+    new_x = x * np.cos(angle_rad) - y * np.sin(angle_rad) + center[0]
+    new_y = x * np.sin(angle_rad) + y * np.cos(angle_rad) + center[1]
+    return int(new_x), int(new_y)
+
+
+def rotate_the_horizon(h1, h2, image, angle):
+    # Rotate the horizon points
+    center = (image.shape[1] // 2, image.shape[0] // 2)
+    rotated_horizon_point1 = rotate_point(h1, center, -angle)
+    rotated_horizon_point2 = rotate_point(h2, center, -angle)
+    return rotated_horizon_point1, rotated_horizon_point2
+
+
+def perp_points(p1, p2) -> tuple[tuple, tuple]:
+    """given 2 points (lower & higher points of an object), return points that create a perpendicular
+    line related to the object's plane, by returning the same y values but averaged x values.
+    reminder: we assume that the object is standing on the plane, hence should be perpendicular anyway"""
+    avg_x = (p1[0] + p2[0]) // 2
+    p1 = (avg_x, p1[1])
+    p2 = (avg_x, p2[1])
+    return p1, p2
+
+
+def draw_point_on_img(img, p, txt):
+    """arguments: image, text, and a point in non-homogeneous coordinates"""
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(img, txt, p, font, 1,
+                (0, 255, 255), 2)
+    cv2.imshow('image', img)
+
+
+def draw_line_on_img(img, p1, p2, show=False):
+    """arguments: image, and 2 points in non-homogeneous coordinates"""
+    cv2.line(img, p1, p2, color=(0, 255, 255), thickness=1)
+    if show:
+        cv2.imshow('image', img)
