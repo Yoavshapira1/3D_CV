@@ -22,9 +22,11 @@ def to_homogenous(p):
 
 def to_non_homogenous(p):
     """Convert homogenous coordinates to non-homogenous coordinates"""
+    if len(p) < 3:
+        return p
     if p[2] == 0:
         return None
-    return p[0]/p[2], p[1]/p[2]
+    return p[0]//p[2], p[1]//p[2]
 
 
 def find_intersection(l1_a, l1_b, l2_a, l2_b):
@@ -48,34 +50,37 @@ def find_intersection(l1_a, l1_b, l2_a, l2_b):
     return to_non_homogenous(inters_homo)
 
 
-def calc_cr(b, t, r, H):
+def calc_cr(b, t, r, R):
     """
     Calculating the height using cross ratio
     :param b: lower point of the object
     :param t: middle point of the object
     :param r: upper point of the object
-    :param H: the real height of the object
-    :return: the height of the wave
+    :param R: the real height of the object
+    :return: the height of the object
     """
     b_t = np.abs(b[1] - t[1])
     b_r = np.abs(b[1] - r[1])
-    W = b_t / b_r * H
-    return W
+    H = (b_t / b_r) * R
+    return H
 
 
-def calculate_W(b, r, H, b0, t0, h1, h2):
+def calculate_H(b, r, R, b0, t0, h1, h2):
     """
-    calculating the height of the wave (W)
-    :param b: lower point of the object
-    :param r: upper point of the object
-    :param H: the real height of the object
-    :param b0: lower point of the wave
-    :param t0: upper point of the wave
+    calculating the height of the object - H
+    :param b: lower point of the reference object
+    :param r: upper point of the reference object
+    :param R: the real height of the reference object
+    :param b0: lower point of the object
+    :param t0: upper point of the object
     :param h1: a point on the horizon
     :param h2: another point on the horizon
-    :return: the height of the wave
+    :return: the height of the object
     """
-    v = find_intersection(b, b0, h1, h2)
+    # v = find_intersection(b, b0, h1, h2)
+    v = (825, 148)
     t = find_intersection(v, t0, b, r)
-    W = calc_cr(b, t, r, H)
-    return W
+    print(t)
+    print("our t:", (308, 321))
+    H = calc_cr(b, t, r, R)
+    return H

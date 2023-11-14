@@ -59,44 +59,45 @@ def display_and_wait(img):
 if __name__ == "__main__":
 
 	# reading the image
-	img = cv2.imread(r"pics/beer3.jpeg", 1)
-	img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+	img = cv2.imread(r"pics/giraffe.jpg", 1)
+	# img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
 
 	# get inputs for finding the horizon
 	display_and_wait(img)
 
 	# find the horizon using 4 inputs
-	points = [(338, 636), (718, 563), (464, 494), (257, 515)]
+	points = [(453, 510), (742, 460), (596, 386), (379, 413)]
 	a1, a2, a3, a4 = [to_homogenous(p) for p in points]
 	h1 = find_intersection(a1, a2, a4, a3)
 	h2 = find_intersection(a1, a4, a2, a3)
 
 	# rotate the image using the horizon. also draw the line on the image
 	rotation_angle = get_rotation_angle(h1, h2)
-	img = rotate_image(img, rotation_angle)
-	h1, h2 = rotate_the_horizon(h1, h2, img, rotation_angle)
+	# img = rotate_image(img, rotation_angle)
+	# h1, h2 = rotate_two_points(h1, h2, img, rotation_angle)
 	draw_line_on_img(img, h1, h2)
 
 	# get input for the rest of the points
 	display_and_wait(img)
 
-	b = (624, 643)
-	r = (623, 216)
+	b = (314, 713)
+	r = (311, 86)
 
-	b, r = perp_points(b, r)
-	H_box = 6.5
-	H_beer = 22.5
+	b, r = rotate_two_points(b, r, img, rotation_angle)
+	# b, r = perp_points(b, r)
+	R_box = 6.5
+	R_beer = 22.5
 
-	b0_far, t0_far = (86, 431), (94, 177)
-	b0_close, t0_close = (457, 441), (458, 147)
-	b0, t0 = perp_points(b0_close, t0_close)
+	b0_far, t0_far = (281, 278), (270, 96)
+	b0_close, t0_close = (563, 552), (567, 358)
+	b0, t0 = rotate_two_points(b0_far, t0_far, img, rotation_angle)
+	b0, t0 = perp_points(b0, t0)
+	b0, t0 = (522, 483), (526, 253)
 
-	W_pred = calculate_W(b, r, H_beer, b0, t0, h1, h2)
-	W = 74
-	print("real: ", W)
-	print("pred: ", W_pred)
-
-	print("the horizon :",h1, h2)
+	H_pred = calculate_H(b, r, 124, b0, t0, h1, h2)
+	H = 74
+	print("real: ", H)
+	print("pred: ", H_pred)
 
 	# line: b -> b0 -> v
 	v = find_intersection(b, b0, h1, h2)

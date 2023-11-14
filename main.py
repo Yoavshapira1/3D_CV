@@ -1,7 +1,7 @@
 # main code logic is here
 
 from cv2 import imread
-from geometry import calculate_W
+from geometry import calculate_H
 from utilities import find_horizon, sample_object, find_wave
 
 
@@ -42,4 +42,4 @@ if __name__ == "__main__":
     # H = 124
 
     # calculate the heights of the wave
-    calculate_W(b, r, H, b0, t0, h1, h2)
+    calculate_H(b, r, H, b0, t0, h1, h2)

@@ -48,7 +48,7 @@ def rotate_point(point, center, angle):
     return int(new_x), int(new_y)
 
 
-def rotate_the_horizon(h1, h2, image, angle):
+def rotate_two_points(h1, h2, image, angle):
     # Rotate the horizon points
     center = (image.shape[1] // 2, image.shape[0] // 2)
     rotated_horizon_point1 = rotate_point(h1, center, -angle)
