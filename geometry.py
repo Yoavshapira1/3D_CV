@@ -77,10 +77,7 @@ def calculate_H(b, r, R, b0, t0, h1, h2):
     :param h2: another point on the horizon
     :return: the height of the object
     """
-    # v = find_intersection(b, b0, h1, h2)
-    v = (825, 148)
+    v = find_intersection(b, b0, h1, h2)
     t = find_intersection(v, t0, b, r)
-    print(t)
-    print("our t:", (308, 321))
     H = calc_cr(b, t, r, R)
     return H

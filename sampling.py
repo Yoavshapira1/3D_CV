@@ -73,8 +73,8 @@ if __name__ == "__main__":
 
 	# rotate the image using the horizon. also draw the line on the image
 	rotation_angle = get_rotation_angle(h1, h2)
-	# img = rotate_image(img, rotation_angle)
-	# h1, h2 = rotate_two_points(h1, h2, img, rotation_angle)
+	img = rotate_image(img, rotation_angle)
+	h1, h2 = rotate_two_points(h1, h2, img, rotation_angle)
 	draw_line_on_img(img, h1, h2)
 
 	# get input for the rest of the points
@@ -82,9 +82,8 @@ if __name__ == "__main__":
 
 	b = (314, 713)
 	r = (311, 86)
-
 	b, r = rotate_two_points(b, r, img, rotation_angle)
-	# b, r = perp_points(b, r)
+	b, r = perp_points(b, r)
 	R_box = 6.5
 	R_beer = 22.5
 
