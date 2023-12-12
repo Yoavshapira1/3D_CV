@@ -86,7 +86,7 @@ def find_object_height(chosen_contours, given_point):
 
 
 def run():
-	image = cv2.imread('Pictures/img1.jpg')
+	image = cv2.imread('pics/img1.jpg')
 	image = cv2.resize(image, (960, 540))
 	contours = find_all_image_contours(image)
 	given_point = choose_cord(image)[0]

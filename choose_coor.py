@@ -1,6 +1,6 @@
 import cv2
 
-IMAGE_TO_READ = 'Pictures/img1.jpg'
+IMAGE_TO_READ = 'pics/img1.jpg'
 
 
 def choose_cord(img):
