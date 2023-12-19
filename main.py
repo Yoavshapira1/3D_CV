@@ -32,9 +32,10 @@ def load_clusters():
     return v_points
 
 if __name__ == "__main__":
+    # good images: 1080104
 
     # load the image
-    path = r"YorkUrbanDB/P1080104/P1080104.jpg"
+    path = r"YorkUrbanDB/P1080119/P1080119.jpg"
     img = cv2.imread(path)
 
     # run clustering
@@ -43,8 +44,8 @@ if __name__ == "__main__":
                                                                     iter=1000,
                                                                     quant=5)]
 
-    # from loaded clusters
-    v_points = load_clusters()
+    # # from loaded clusters
+    # v_points = load_clusters()
 
     print(v_points)
 

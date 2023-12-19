@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import scipy
 from utilities import plot_and_wait
 import json
 from clustering import find_clusters, D_proj, D_proj_vec, seg_to_line, seg_to_line_vec
