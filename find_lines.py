@@ -95,13 +95,13 @@ def final_points(clusters):
     return vanishing_points
 
 
-def find_vanishing_points(img, plot_detected=False, iter=15):
+def find_vanishing_points(img, plot_detected=False, iter=15, quant=5):
 
     # create blank background for plot the lines
     blank = np.ones(img.shape, dtype=np.uint8) * 255
 
     # Create LSD detector
-    lsd = cv2.createLineSegmentDetector(2, quant=1)
+    lsd = cv2.createLineSegmentDetector(2, quant=quant)
     lines, width, prec, nfa = lsd.detect(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
 
     # plot the detected lines

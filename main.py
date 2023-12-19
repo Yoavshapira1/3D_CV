@@ -19,24 +19,33 @@ def avg_x_axes(a, b):
     return a, b
 
 
+def load_clusters():
+    # Opening JSON file
+    clusters = []
+    for name in ['c1', 'c2', 'c3']:
+        with open('%s.json' % name, 'r') as f:
+            data = json.load(f)
+            clusters.append(np.array(data))
+    from find_lines import final_points
+    v_points = [to_non_homogenous(p) for p in final_points(clusters)]
+
+    return v_points
+
 if __name__ == "__main__":
 
-    # # Opening JSON file
-    # clusters = []
-    # for name in ['c1', 'c2', 'c3']:
-    #     with open('%s.json'%name, 'r') as f:
-    #         data = json.load(f)
-    #         clusters.append(np.array(data))
-    # from find_lines import final_points
-    # v_points = final_points(clusters)
-
     # load the image
-    path = r"YorkUrbanDB\P1080119\P1080119.jpg"
+    path = r"YorkUrbanDB/P1080104/P1080104.jpg"
     img = cv2.imread(path)
 
+    # run clustering
     v_points = [to_non_homogenous(p) for p in find_vanishing_points(img,
-                                                                    plot_detected=True,
-                                                                    iter=100)]
+                                                                    plot_detected=False,
+                                                                    iter=1000,
+                                                                    quant=5)]
+
+    # from loaded clusters
+    v_points = load_clusters()
+
     print(v_points)
 
     # plot the vanishing lines (3 of them) on the image
