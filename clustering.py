@@ -58,7 +58,7 @@ def find_theta_h(cluster, q):
     thetas = np.arctan2((cluster[:,1] - cluster[:,0])[:,1], (cluster[:,1] - cluster[:,0])[:,0])[:,None]
     s_h = np.sum(q * np.sin(2 * thetas))
     c_h = np.sum(q * np.cos(2 * thetas))
-    t_h = np.arctan(s_h / c_h) #if c_h != 0 else np.pi / 2
+    t_h = np.arctan(s_h / c_h) if c_h != 0 else np.pi / 2
     return t_h, thetas
 
 
