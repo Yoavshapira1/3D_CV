@@ -71,11 +71,16 @@ def draw_point_on_img(img, p, txt):
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(img, txt, p, font, 1,
                 (0, 255, 255), 2)
-    cv2.imshow('image', img)
+    plot_and_wait(img)
 
 
-def draw_line_on_img(img, p1, p2, show=False):
+def draw_line_on_img(img, p1, p2, color=(0, 255, 255), show=False):
     """arguments: image, and 2 points in non-homogeneous coordinates"""
-    cv2.line(img, p1, p2, color=(0, 255, 255), thickness=1)
+    cv2.line(img, p1, p2, color=color, thickness=1)
     if show:
-        cv2.imshow('image', img)
+        plot_and_wait(img)
+
+def plot_and_wait(img):
+    cv2.imshow('image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

@@ -26,7 +26,7 @@ def to_non_homogenous(p):
         return p
     if p[2] == 0:
         return None
-    return p[0]//p[2], p[1]//p[2]
+    return int(p[0]//p[2]), int(p[1]//p[2])
 
 
 def find_intersection(l1_a, l1_b, l2_a, l2_b):

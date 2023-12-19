@@ -1,29 +1,47 @@
 import random
 import time
-
 import cv2
 import numpy as np
 
-def first_seed(segments, n=3):
+def first_seed(segments, q, n=3):
     """
     receives homogenous segments and choose first seed and centroid
     """
     C = []
-    chosen = random.sample(segments, 2*n)
+    idx = np.argsort(q.flatten())[-2*n:]
+    chosen = segments[idx]
     for i in range(n):
         h = chosen[i:i+2]
         l_h_0 = np.cross(h[0][0], h[0][1])
         l_h_1 = np.cross(h[1][0], h[1][1])
         c = np.cross(l_h_0, l_h_1)
         C.append(c)
-
     return C
+
 
 def seg_to_line(segment):
     return np.cross(segment[0], segment[1])
 
+
+def seg_to_line_vec(segment):
+    return np.cross(segment[:,0], segment[:,1], axisa=-1, axisb=-1)
+
+
 def D_proj(c, l):
-    return np.linalg.norm(np.dot(c, l)) / (np.linalg.norm(c) * (np.linalg.norm(l)))
+    return np.abs(np.dot(c, l)) / (np.linalg.norm(c) * (np.linalg.norm(l)))
+
+
+def D_proj_vec(c, l_vec):
+    dot_prod = np.sum(c * l_vec, axis=1)
+    return np.abs(dot_prod) / (np.linalg.norm(c) * (np.linalg.norm(l_vec, axis=1)))
+
+
+def D_proj_mat(c_vec, l_vec):
+    dot_prod = np.abs(np.dot(l_vec, np.array(c_vec).T))
+    c_norm = dot_prod / np.linalg.norm(c_vec, axis=1)
+    line_norm = c_norm / np.linalg.norm(l_vec, axis=1)[:,None]
+    return line_norm
+
 
 def min_pseudo_centroid_cluster(line, C):
     """
@@ -36,67 +54,59 @@ def min_pseudo_centroid_cluster(line, C):
     return np.argmin(projs)
 
 
-def find_theta_h(cluster, q_list):
-    s_h, c_h, thetas = 0, 0, []
-    for seg, q in zip(cluster, q_list):
-        thetas.append(np.arctan2(seg[1][1] - seg[0][1], seg[1][0] - seg[0][0]))
-        s_h += q * np.sin(2 * thetas[-1])
-        c_h += q * np.cos(2 * thetas[-1])
-    t_h = np.arctan(s_h / c_h) if c_h != 0 else np.pi / 2
+def find_theta_h(cluster, q):
+    thetas = np.arctan2((cluster[:,1] - cluster[:,0])[:,1], (cluster[:,1] - cluster[:,0])[:,0])[:,None]
+    s_h = np.sum(q * np.sin(2 * thetas))
+    c_h = np.sum(q * np.cos(2 * thetas))
+    t_h = np.arctan(s_h / c_h) #if c_h != 0 else np.pi / 2
     return t_h, thetas
 
 
-def update_cluster_seeds(cluster):
-    t_h, thetas = find_theta_h(cluster, [1]*len(cluster))
-    angles = []
-    for t in thetas:
-        diff = abs(t - t_h) % (2*np.pi)
-        angles.append(min(diff, (2*np.pi) - diff))
-    min_angle = np.argmin(angles)
+def update_cluster_seeds(cluster, q):
+    t_h, thetas = find_theta_h(cluster, q)
+    diff = np.abs(thetas - t_h) % (2 * np.pi)
+    radians = np.min(np.c_[diff, 2 * np.pi - diff], axis=1)
+    min_angle = np.argmin(radians)
     alpha_h = cluster[min_angle]
-
-    projs = []
-    for seg in cluster:
-        sum = 0
-        for seg2 in cluster:
-            if seg == seg2:
-                continue
-            a_cross_seg = np.cross(seg_to_line(alpha_h), seg_to_line(seg))
-            a_cross_seg2 = np.cross(seg_to_line(alpha_h), seg_to_line(seg2))
-            sum += D_proj(a_cross_seg, a_cross_seg2)
-        projs.append(sum)
-    beta_h = cluster[np.argmin(projs)]
-
+    M = np.cross(seg_to_line(alpha_h), seg_to_line_vec(cluster))
+    M_proj_M = D_proj_mat(M, M)
+    M_proj_M_sum = np.sum(np.nan_to_num(M_proj_M, nan=2.0), axis=0)
+    beta_h = cluster[np.argmin(M_proj_M_sum)]
     return alpha_h, beta_h
 
 
-def build_clusters_from_centroids(segments, centroids):
-    clusters = [[] for i in range(3)]
-    for seg in segments:
-        line = seg_to_line(seg)
-        cluster_idx = min_pseudo_centroid_cluster(line, centroids)
-        clusters[cluster_idx].append(seg)
-    return clusters
+def build_clusters_from_centroids(segments, centroids, q):
+    clusters, q_for_clusters = [[] for i in range(3)], [[] for i in range(3)]
+    lines = seg_to_line_vec(segments)
+    distances = D_proj_mat(centroids, lines)
+    min_dist = np.argmin(distances, axis=1)
+
+    for i in range(3):
+        clusters[i] = segments[min_dist == i]
+        q_for_clusters[i] = q[min_dist == i]
+    return clusters, q_for_clusters
 
 
-def loop(segments, centroids):
+def loop(segments, centroids, q, iter):
     start = time.time()
-    for i in range(15):
-        clusters = build_clusters_from_centroids(segments, centroids)
+    for i in range(iter):
+        clusters, q_for_clusters = build_clusters_from_centroids(segments, centroids, q)
         print([len(c) for c in clusters], "total: ", np.sum([len(c) for c in clusters]))
         centroids_new = []
-        for c in clusters:
-            a, b = update_cluster_seeds(c)
+        for i in range(len(clusters)):
+            c, q_c = clusters[i], q_for_clusters[i]
+            a, b = update_cluster_seeds(c, q_c)
             centroids_new.append(np.cross(seg_to_line(a), seg_to_line(b)))
         if np.equal(centroids_new, centroids).all():
+            print("conv")
             break
         centroids = centroids_new
     print(time.time() - start)
     return clusters, centroids
 
 
-def main(segments):
-    centroids = first_seed(segments)
-    clusters, C = loop(segments, centroids)
+def find_clusters(segments, q, iter=50):
+    centroids = first_seed(segments, q)
+    clusters, C = loop(segments, centroids, q, iter)
     return clusters, C
 
