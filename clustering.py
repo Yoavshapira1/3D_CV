@@ -2,8 +2,9 @@ import random
 import time
 import cv2
 import numpy as np
+from utilities import draw_lines_and_centroids
 
-def first_seed(segments, q, n=3):
+def first_seed(segments, q, n):
     """
     receives homogenous segments and choose first seed and centroid
     """
@@ -70,22 +71,19 @@ def update_cluster_seeds(cluster, q):
     alpha_h = cluster[min_angle]
     M = np.cross(seg_to_line(alpha_h), seg_to_line_vec(cluster))
     M = np.delete(M, min_angle, 0)
-
-    M_proj_M = D_proj_mat(M, M)
-    # M_proj_M_sum = np.sum(np.nan_to_num(M_proj_M, nan=2.0), axis=0)
     M_proj_M_sum = np.argmin(np.sum(D_proj_mat(M, M), axis=0))
     min_sum = np.argmin(M_proj_M_sum)
     beta_h = cluster[min_sum if min_sum < min_angle else min_sum + 1]
     return alpha_h, beta_h
 
 
-def build_clusters_from_centroids(segments, centroids, q):
-    clusters, q_for_clusters = [[] for i in range(3)], [[] for i in range(3)]
+def build_clusters_from_centroids(segments, centroids, q, n):
+    clusters, q_for_clusters = [[] for i in range(n)], [[] for i in range(n)]
     lines = seg_to_line_vec(segments)
     distances = D_proj_mat(centroids, lines)
     min_dist = np.argmin(distances, axis=1)
 
-    for i in range(3):
+    for i in range(n):
         clusters[i] = segments[min_dist == i]
         q_for_clusters[i] = q[min_dist == i]
     return clusters, q_for_clusters
@@ -105,28 +103,57 @@ def is_converged(old, new):
     print("converged")
     return True
 
+def clusters_to_tuples(clusters):
+    tuple_clusters = list()
+    for cluster in clusters:
+        tuple_cluster = list()
+        sorted_cluster = sorted(cluster, key=lambda s: s[0][0]+s[0][1]+s[1][0]+s[1][1])
+        for i in range(len(sorted_cluster)):
+            seg = sorted_cluster[i]
+            tuple_cluster.append((tuple(seg[0]), tuple(seg[1])))
+        tuple_clusters.append(tuple(tuple_cluster))
+    return tuple(tuple_clusters)
 
-def loop(segments, centroids, q, iter):
+def centroid_to_tuple(centroids):
+    tuple_centroids = list()
+    sorted_centroids = sorted(centroids, key=lambda s: s[0] + s[1] + s[2])
+    for c in sorted_centroids:
+        tuple_centroids.append(tuple(c))
+    return tuple(tuple_centroids)
+
+
+
+def loop(segments, centroids, q, iter,n, img):
     start = time.time()
-    clusters_old = None
+    centroids_set = set()
+    centroids_tuple = centroid_to_tuple(centroids)
+    centroids_set.add(centroids_tuple)
+
     for i in range(iter):
-        clusters, q_for_clusters = build_clusters_from_centroids(segments, centroids, q)
-        if is_converged(clusters_old, clusters):
-            break
-        clusters_old = clusters
+        clusters, q_for_clusters = build_clusters_from_centroids(segments, centroids, q, n)
         print([len(c) for c in clusters], "total: ", np.sum([len(c) for c in clusters]))
         centroids_new = []
         for i in range(len(clusters)):
             c, q_c = clusters[i], q_for_clusters[i]
             a, b = update_cluster_seeds(c, q_c)
             centroids_new.append(np.cross(seg_to_line(a), seg_to_line(b)))
-        centroids = centroids_new
+
+        centroids_tuple = centroid_to_tuple(centroids_new)
+        if centroids_tuple in centroids_set:
+            if (centroids==np.array(centroids_new)).all():
+                print("converged")
+            print("Loop detected")
+            break
+
+        centroids = np.array(centroids_new)
+        centroids_set.add(centroids_tuple)
+        draw_lines_and_centroids(clusters, centroids, img)
     print(time.time() - start)
     return clusters, centroids
 
 
-def find_clusters(segments, q, iter=50):
-    centroids = first_seed(segments, q)
-    clusters, C = loop(segments, centroids, q, iter)
+def find_clusters(segments, q, img, iter=50, n=3):
+    centroids = first_seed(segments, q,n)
+    clusters, C = loop(segments, centroids, q, iter,n, img)
     return clusters, C
 

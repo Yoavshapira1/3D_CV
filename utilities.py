@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from geometry import to_non_homogenous
 
 
 def rotate_image(image, angle):
@@ -79,6 +80,17 @@ def draw_line_on_img(img, p1, p2, color=(0, 255, 255), show=False):
     cv2.line(img, p1, p2, color=color, thickness=1)
     if show:
         plot_and_wait(img)
+
+
+def draw_lines_and_centroids(clusters, centroids, img):
+    image = img.copy()
+    for color, cluster, centroid in zip([(0, 0, 255), (0, 255, 0), (255, 0, 0)], clusters, centroids):
+        for seg in cluster:
+            p1, p2 = seg
+            p1, p2 = to_non_homogenous(p1), to_non_homogenous(p2)
+            cv2.line(image, p1, p2, color, 1)
+            cv2.circle(image, to_non_homogenous(centroid), 5, color, -1)
+    plot_and_wait(image)
 
 def plot_and_wait(img):
     cv2.imshow('image', img)
