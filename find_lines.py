@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import scipy
-from utilities import plot_and_wait
+from utilities import plot_and_wait, draw_lines_and_centroids
 import json
 from clustering import find_clusters, D_proj, D_proj_vec, seg_to_line, seg_to_line_vec
 from geometry import to_non_homogenous
@@ -96,14 +96,21 @@ def final_points(clusters):
     return vanishing_points
 
 
+
+
+
 def find_vanishing_points(img, plot_detected=False, iter=15, quant=5):
 
     # create blank background for plot the lines
     blank = np.ones(img.shape, dtype=np.uint8) * 255
 
     # Create LSD detector
-    lsd = cv2.createLineSegmentDetector(2, quant=quant)
+    plot_and_wait(img)
+    lsd = cv2.createLineSegmentDetector(cv2.LSD_REFINE_ADV, quant=quant)
     lines, width, prec, nfa = lsd.detect(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    trash_hold = 10
+    nfa = [nfa[i] for i in range(len(lines)) if np.linalg.norm(lines[i][0][0:2] - lines[i][0][2:4]) > trash_hold]
+    lines = [line for line in lines if np.linalg.norm(line[0][0:2] - line[0][2:4]) > trash_hold]
 
     # plot the detected lines
     if plot_detected:
@@ -113,13 +120,8 @@ def find_vanishing_points(img, plot_detected=False, iter=15, quant=5):
     q = create_q_mat(nfa)
     lines = np.moveaxis(lines, 1, 0)[0]
     segments = np.array([[np.array([line[0], line[1], 1]), np.array([line[2], line[3], 1])] for line in lines])
-    clusters, C = find_clusters(segments, q, iter=iter)
-    for color, cluster in zip([(0, 0, 255), (0, 255, 0), (255, 0, 0)], clusters):
-        for seg in cluster:
-            p1, p2 = seg
-            p1, p2 = to_non_homogenous(p1), to_non_homogenous(p2)
-            cv2.line(img, p1, p2, color, 1)
-    plot_and_wait(img)
+    clusters, C = find_clusters(segments, q, iter=iter, n=3, img=img)
+    draw_lines_and_centroids(clusters, C, img)
     print("clustered")
 
     for name, clu in zip(['c1', 'c2', 'c3'], clusters):
@@ -131,3 +133,5 @@ def find_vanishing_points(img, plot_detected=False, iter=15, quant=5):
     print("v points found")
 
     return v_points
+
+

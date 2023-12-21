@@ -5,6 +5,7 @@ import numpy as np
 import scipy.io
 import cv2
 from cv2 import imread
+from PIL import Image
 from geometry import calculate_H
 from utilities import draw_line_on_img
 from find_lines import find_vanishing_points, to_non_homogenous
@@ -31,18 +32,34 @@ def load_clusters():
 
     return v_points
 
+
+def resize_image(original_image, new_width):
+    # Get the original image dimensions
+    original_height, original_width = original_image.shape[:2]
+
+    # Calculate the proportional height based on the new width
+    new_height = int((new_width / original_width) * original_height)
+
+    # Resize the image
+    return  cv2.resize(original_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
 if __name__ == "__main__":
     # good images: 1080104
 
     # load the image
     path = r"YorkUrbanDB/P1080119/P1080119.jpg"
+    path = r"pics/coordinate_system.png"
     img = cv2.imread(path)
+    new_width = 700
+    img = resize_image(img, new_width)
+
+
 
     # run clustering
     v_points = [to_non_homogenous(p) for p in find_vanishing_points(img,
-                                                                    plot_detected=False,
+                                                                    plot_detected=True,
                                                                     iter=1000,
-                                                                    quant=5)]
+                                                                    quant=0.1)]
 
     # # from loaded clusters
     # v_points = load_clusters()
