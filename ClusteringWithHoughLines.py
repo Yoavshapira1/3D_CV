@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import scipy
+
+from main import load_clusters
 from utilities import plot_and_wait, draw_line_on_img
 import json
 from clustering import find_clusters, D_proj, D_proj_vec, seg_to_line, seg_to_line_vec
@@ -57,6 +59,20 @@ def draw_hough_lines(img, lines):
         cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
 
+def theta_2_points(p1, p2):
+    print(np.abs(np.arctan2(p2[1] - p1[1], p2[0] - p1[0])))
+    return np.abs(np.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
+
+def find_horizontal_v_line(vp):
+    theta, c1, c2 = np.inf, None, None
+    if theta_2_points(vp[0], vp[1]) < theta:
+        theta, c1, c2 = theta_2_points(vp[0], vp[1]), vp[0], vp[1]
+    if theta_2_points(vp[0], vp[2]) < theta:
+        theta, c1, c2 = theta_2_points(vp[0], vp[2]), vp[0], vp[2]
+    if theta_2_points(vp[1], vp[2]) < theta:
+        theta, c1, c2 = theta_2_points(vp[1], vp[2]), vp[1], vp[2]
+    return c1, c2
+
 def find_vanishing_points(img, plot_detected=False, iter=15, quant=5, th=50):
 
     # create blank background for plot the lines
@@ -112,20 +128,22 @@ def find_vanishing_points(img, plot_detected=False, iter=15, quant=5, th=50):
 # Good Results: P1080106, 1080119
 
 # load the image
-path = r"YorkUrbanDB/P1080093/P1080093.jpg"
+path = r"Jaffa/AbuHasan/AbuHasan.jpeg"
 img = cv2.imread(path)
+img = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
 
 # run clustering
 v_points = [to_non_homogenous(p) for p in find_vanishing_points(img.copy(),
                                                                 plot_detected=False,
                                                                 iter=1000,
                                                                 quant=5,
-                                                                th=30)]
+                                                                th=125)]
 
-# # from loaded clusters
+# from loaded clusters
 # v_points = load_clusters()
 
-print(v_points)
+h1, h2 = find_horizontal_v_line(v_points)
+draw_line_on_img(img, h1, h2, color=(0, 0, 255), show=True)
 
 # plot the vanishing lines (3 of them) on the image
 draw_line_on_img(img, v_points[0], v_points[1], color=(0, 0, 255))
