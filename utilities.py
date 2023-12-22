@@ -74,9 +74,9 @@ def draw_point_on_img(img, p, txt):
     plot_and_wait(img)
 
 
-def draw_line_on_img(img, p1, p2, color=(0, 255, 255), show=False):
+def draw_line_on_img(img, p1, p2, color=(0, 255, 255), show=False, thickness=1):
     """arguments: image, and 2 points in non-homogeneous coordinates"""
-    cv2.line(img, p1, p2, color=color, thickness=1)
+    cv2.line(img, p1, p2, color=color, thickness=thickness)
     if show:
         plot_and_wait(img)
 

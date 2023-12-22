@@ -1,7 +1,5 @@
-import random
-import time
-import cv2
 import numpy as np
+
 
 def first_seed(segments, q, n=3):
     """
@@ -58,7 +56,7 @@ def find_theta_h(cluster, q):
     thetas = np.arctan2((cluster[:,1] - cluster[:,0])[:,1], (cluster[:,1] - cluster[:,0])[:,0])[:,None]
     s_h = np.sum(q * np.sin(2 * thetas))
     c_h = np.sum(q * np.cos(2 * thetas))
-    t_h = np.arctan(s_h / c_h) #if c_h != 0 else np.pi / 2
+    t_h = np.arctan(s_h / c_h)
     return t_h, thetas
 
 
@@ -71,57 +69,37 @@ def update_cluster_seeds(cluster, q):
     M = np.cross(seg_to_line(alpha_h), seg_to_line_vec(cluster))
     M = np.delete(M, min_angle, 0)
 
-    M_proj_M = D_proj_mat(M, M)
-    # M_proj_M_sum = np.sum(np.nan_to_num(M_proj_M, nan=2.0), axis=0)
     M_proj_M_sum = np.argmin(np.sum(D_proj_mat(M, M), axis=0))
     min_sum = np.argmin(M_proj_M_sum)
     beta_h = cluster[min_sum if min_sum < min_angle else min_sum + 1]
     return alpha_h, beta_h
 
 
-def build_clusters_from_centroids(segments, centroids, q):
-    clusters, q_for_clusters = [[] for i in range(3)], [[] for i in range(3)]
+def build_clusters_from_centroids(segments, centroids, q, n=3):
+    clusters, q_for_clusters = [[] for _ in range(n)], [[] for _ in range(n)]
     lines = seg_to_line_vec(segments)
     distances = D_proj_mat(centroids, lines)
     min_dist = np.argmin(distances, axis=1)
 
-    for i in range(3):
+    for i in range(n):
         clusters[i] = segments[min_dist == i]
         q_for_clusters[i] = q[min_dist == i]
     return clusters, q_for_clusters
 
 
-def is_converged(old, new):
-    if old is None:
-        return False
-
-    for i in range(len(new)):
-        if old[i].shape != new[i].shape:
-            return False
-
-        if not (new[i] == old[i]).all():
-            return False
-
-    print("converged")
-    return True
-
 
 def loop(segments, centroids, q, iter):
-    start = time.time()
-    clusters_old = None
     for i in range(iter):
         clusters, q_for_clusters = build_clusters_from_centroids(segments, centroids, q)
-        if is_converged(clusters_old, clusters):
-            break
-        clusters_old = clusters
         print([len(c) for c in clusters], "total: ", np.sum([len(c) for c in clusters]))
         centroids_new = []
         for i in range(len(clusters)):
             c, q_c = clusters[i], q_for_clusters[i]
             a, b = update_cluster_seeds(c, q_c)
             centroids_new.append(np.cross(seg_to_line(a), seg_to_line(b)))
+        if (np.array(centroids_new) == centroids).all():
+            break
         centroids = centroids_new
-    print(time.time() - start)
     return clusters, centroids
 
 

@@ -4,10 +4,10 @@ import json
 import numpy as np
 import scipy.io
 import cv2
-from cv2 import imread
-from geometry import calculate_H
+from geometry import calculate_H, to_non_homogenous
+from choose_coor import choose_cord
+from ClusteringWithHoughLines import find_vanishing_points
 from utilities import draw_line_on_img
-from find_lines import find_vanishing_points, to_non_homogenous
 
 
 def avg_x_axes(a, b):
@@ -19,66 +19,42 @@ def avg_x_axes(a, b):
     return a, b
 
 
-def load_clusters():
-    # Opening JSON file
-    clusters = []
-    for name in ['c1', 'c2', 'c3']:
-        with open('%s.json' % name, 'r') as f:
-            data = json.load(f)
-            clusters.append(np.array(data))
-    from find_lines import final_points
-    v_points = [to_non_homogenous(p) for p in final_points(clusters)]
+def choose_coordinates(image, message):
+    print(message)
+    points = choose_cord(image)
+    while len(points) != 2:
+        print("choose only the bottom and top of the object")
+        points = choose_cord(image)
+    points.sort(key=lambda point: point[1], reverse=True)
+    return points
 
-    return v_points
 
 if __name__ == "__main__":
-    # good images: 1080104
+    # good images: 1080104, P1080106, 1080119
 
     # load the image
-    path = r"YorkUrbanDB/P1080119/P1080119.jpg"
+    path = r"Jaffa/Glz/Glz_resized.jpeg"
     img = cv2.imread(path)
 
     # run clustering
-    v_points = [to_non_homogenous(p) for p in find_vanishing_points(img,
-                                                                    plot_detected=False,
-                                                                    iter=1000,
-                                                                    quant=5)]
+    h1, h2, vertical_p = find_vanishing_points(img,
+                          plot_detected=False,
+                          iter=1000,
+                          segmentetion_algorithm="LSD"
+                          )
 
-    # # from loaded clusters
-    # v_points = load_clusters()
+    draw_line_on_img(img, h1, h2, color=(255, 0, 0), show=True)
 
-    print(v_points)
+    # b = (190, 400)
+    # r = (189, 278)
+    # b0 = (445, 584)
+    # t0 = (451, 462)
 
-    # plot the vanishing lines (3 of them) on the image
-    draw_line_on_img(img, v_points[0], v_points[1], color=(0, 0, 255))
-    draw_line_on_img(img, v_points[1], v_points[2], color=(0, 255, 0))
-    draw_line_on_img(img, v_points[0], v_points[2], color=(255, 0, 0), show=True)
-
-    # mat = scipy.io.loadmat(r'C:\Users\Dell\Desktop\University\Year4\3D ראייה ממוחשבת\project\YorkUrbanDB\P1080119\P1080119GroundTruthVP_CamParams.mat')
-    # it = mat.items()
-    # matrix = mat["data_opp"]
-
-    # # find the horizon and save as 2 points
-    # h1, h2 = find_horizon(img)
-    #
-    # # find the reference object and save as 2 points - lower and upper, and also ask for the object's height
-    # b, r, H = sample_object(img)
-    # # convert the points to ones that create a line perpendicular to the x axes
-    # b, r = avg_x_axes(b, r)
-    #
-    # # find the wave - lower and upper points
-    # b0, t0 = find_wave(img)
-    # # convert the points to ones that create a line perpendicular to the x axes
-    # b0, t0 = avg_x_axes(b0, t0)
-    #
-    # # # our example from ex2
-    # # b = (158, 355)
-    # # r = (155, 40)
-    # # b0 = (262, 241)
-    # # t0 = (264, 126)
-    # # h1 = (435, 74)
-    # # h2 = (241, 75)
-    # # H = 124
-    #
-    # # calculate the heights of the wave
-    # calculate_H(b, r, H, b0, t0, h1, h2)
+    h1 = (int(1253.615038), int(318.433753))
+    h2 = (int(-474.315634), int(293.168654))
+    b, r = choose_coordinates(image=img, message="Please choose the bottom and top points of your reference object.")
+    print(f"the top point is {r} and the bottom point is {b}")
+    b0, t0 = choose_coordinates(image=img, message="Please choose the bottom and top points of the object you "
+                                                   "wold like to measure.")
+    H = int(input("Please enter the height of your reference object"))
+    print(calculate_H(b, r, H, b0, t0, h1, h2))
