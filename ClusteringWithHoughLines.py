@@ -1,12 +1,11 @@
 import cv2
 import numpy as np
-import scipy
 
-from main import load_clusters
 from utilities import plot_and_wait, draw_line_on_img
 import json
-from clustering import find_clusters, D_proj, D_proj_vec, seg_to_line, seg_to_line_vec
+from clustering import find_clusters, D_proj_vec, seg_to_line, seg_to_line_vec
 from geometry import to_non_homogenous
+
 
 def create_q_mat(nfa):
     F_min = np.min(nfa)
@@ -15,7 +14,7 @@ def create_q_mat(nfa):
     return q
 
 
-def plot_and_exit(lines, img):
+def plot_lines(lines, img):
     for l in lines:
         x1, y1, x2, y2 = map(int, l[0])
         cv2.line(img, (x1, y1), (x2, y2), 0, 1)
@@ -39,41 +38,22 @@ def final_points(clusters):
     return vanishing_points
 
 
-def laplacian(img):
-    s = cv2.Laplacian(img, cv2.CV_16S, ksize=5)
-    s = cv2 .convertScaleAbs(s)
-    return img - s
+def find_vertical_point(clusters, qs=None):
+    if qs is None:
+        qs = [np.ones(len(cluster)) for cluster in clusters]
+    angles = []
+    for q, cluster in zip(qs, clusters):
+        thetas = np.arctan2((cluster[:,1] - cluster[:,0])[:,1], (cluster[:,1] - cluster[:,0])[:,0])[:,None]
+        s_h = np.sum(q * np.sin(2 * thetas))
+        c_h = np.sum(q * np.cos(2 * thetas))
+        R_h = np.sqrt(s_h**2 + c_h**2) / np.sum(q)
+        sigma_h = np.sqrt(-2*np.log(R_h)) / 2
+        theta_h = np.arctan(s_h/c_h)
+        angles.append(min(theta_h, np.pi/2 - theta_h) + sigma_h)
+    angles = np.array(angles)
+    return angles.argmin()
 
-
-def draw_hough_lines(img, lines):
-    for p in lines:
-        rho, theta = p[0]
-        a = np.cos(theta)
-        b = np.sin(theta)
-        x0 = a * rho
-        y0 = b * rho
-        x1 = int(x0 + 1000 * (-b))
-        y1 = int(y0 + 1000 * (a))
-        x2 = int(x0 - 1000 * (-b))
-        y2 = int(y0 - 1000 * (a))
-        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-
-
-def theta_2_points(p1, p2):
-    print(np.abs(np.arctan2(p2[1] - p1[1], p2[0] - p1[0])))
-    return np.abs(np.arctan2(p2[1] - p1[1], p2[0] - p1[0]))
-
-def find_horizontal_v_line(vp):
-    theta, c1, c2 = np.inf, None, None
-    if theta_2_points(vp[0], vp[1]) < theta:
-        theta, c1, c2 = theta_2_points(vp[0], vp[1]), vp[0], vp[1]
-    if theta_2_points(vp[0], vp[2]) < theta:
-        theta, c1, c2 = theta_2_points(vp[0], vp[2]), vp[0], vp[2]
-    if theta_2_points(vp[1], vp[2]) < theta:
-        theta, c1, c2 = theta_2_points(vp[1], vp[2]), vp[1], vp[2]
-    return c1, c2
-
-def find_vanishing_points(img, plot_detected=False, iter=15, quant=5, th=50):
+def find_vanishing_points(img, plot_detected=False, iter=15, th=50, segmentetion_algorithm="Hough" , quant=5):
 
     # create blank background for plot the lines
     blank = np.ones(img.shape, dtype=np.uint8) * 255
@@ -83,26 +63,22 @@ def find_vanishing_points(img, plot_detected=False, iter=15, quant=5, th=50):
     # Edges
     edges = cv2.Canny(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 250, 300, apertureSize=3)
     plot_and_wait(edges)
+    if segmentetion_algorithm.upper() == "LSD":
+        lsd = cv2.createLineSegmentDetector(2, quant=quant)
+        lines, width, prec, nfa = lsd.detect(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+        q = create_q_mat(nfa)
 
-    # Hough
-    # lines = cv2.HoughLines(edges, 1, np.pi / 180, 100)
-    # draw_hough_lines(blank, lines)
-    # plot_and_wait(blank)
-
-    # Probabilistic
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, th, maxLineGap=25, minLineLength=10)
-    for l in lines:
-        x1, y1, x2, y2 = l[0]
-        cv2.line(blank, (x1, y1), (x2, y2), (0, 0, 255), 2)
-    plot_and_wait(blank)
+    elif segmentetion_algorithm.upper() == "Hough".upper():
+        # Probabilistic
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, th, maxLineGap=25, minLineLength=10)
+        q = np.array([1. for _ in lines])
 
     # plot the detected lines
     if plot_detected:
-        plot_and_exit(lines, blank)
+        plot_lines(lines, blank)
 
     # clustering algorithm
-    # q = create_q_mat(nfa)
-    q = np.array([1. for l in lines])
+
     lines = np.moveaxis(lines, 1, 0)[0]
     segments = np.array([[np.array([line[0], line[1], 1]), np.array([line[2], line[3], 1])] for line in lines])
     clusters, C = find_clusters(segments, q, iter=iter)
@@ -112,40 +88,14 @@ def find_vanishing_points(img, plot_detected=False, iter=15, quant=5, th=50):
             p1, p2 = to_non_homogenous(p1), to_non_homogenous(p2)
             cv2.line(img, p1, p2, color, 1)
     plot_and_wait(img)
-    print("clustered")
-
-    for name, clu in zip(['c1', 'c2', 'c3'], clusters):
-        with open('%s.json'%name, 'w') as f:
-            json.dump(np.array(clu).tolist(), f)
-    print("dumped")
 
     v_points = final_points(clusters)
-    print("v points found")
+    idx = find_vertical_point(clusters)
+    h1, h2 = [v_points[i] for i in range(len(v_points)) if i != idx]
 
-    return v_points
+    draw_line_on_img(img, to_non_homogenous(h1), to_non_homogenous(h2), color=(255,255,255), thickness=3, show=True)
+
+    return h1, h2, v_points[idx]
 
 
-# Good Results: P1080106, 1080119
 
-# load the image
-path = r"Jaffa/AbuHasan/AbuHasan.jpeg"
-img = cv2.imread(path)
-img = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
-
-# run clustering
-v_points = [to_non_homogenous(p) for p in find_vanishing_points(img.copy(),
-                                                                plot_detected=False,
-                                                                iter=1000,
-                                                                quant=5,
-                                                                th=125)]
-
-# from loaded clusters
-# v_points = load_clusters()
-
-h1, h2 = find_horizontal_v_line(v_points)
-draw_line_on_img(img, h1, h2, color=(0, 0, 255), show=True)
-
-# plot the vanishing lines (3 of them) on the image
-draw_line_on_img(img, v_points[0], v_points[1], color=(0, 0, 255))
-draw_line_on_img(img, v_points[1], v_points[2], color=(0, 255, 0))
-draw_line_on_img(img, v_points[0], v_points[2], color=(255, 0, 0), show=True)
