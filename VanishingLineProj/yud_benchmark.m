@@ -14,7 +14,7 @@ clear
 close all
 
 % point the following path to your local copy of YUD
-DATASET_PATH = '/Users/jose/Documents/cmla/datasets/20130613_YorkUrbanDB/all';
+DATASET_PATH = '../YorkUrbanDB';
 
 load(sprintf('%s/Manhattan_Image_DB_Names.mat', DATASET_PATH));
 load(sprintf('%s/CameraParameters.mat', DATASET_PATH));

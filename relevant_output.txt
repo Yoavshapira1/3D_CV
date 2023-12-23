@@ -1,0 +1,4 @@
+azrielli:
+The measured height of your object using cross is: 183.37243401759528
+The measured height of your object using camera matrix is: 182.41940133344622
+the average is 182.89591767552076
