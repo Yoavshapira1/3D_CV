@@ -81,3 +81,25 @@ def calculate_H(b, r, R, b0, t0, h1, h2):
     t = find_intersection(v, t0, b, r)
     H = calc_cr(b, t, r, R)
     return H
+
+
+def find_alpha(b,r, R,vertical, m_tag):
+    first = np.linalg.norm(np.cross(b, r))
+    second = m_tag @ np.array(b)
+    third = np.linalg.norm(np.cross(vertical, r))
+    return -1*first/(second*third*R)
+
+
+def calculate_height_using_camera_matrix(b, r, R, b0, t0, h1, h2, vertical):
+    m = np.cross(to_homogenous(h1), to_homogenous(h2))
+    b = to_homogenous(b)
+    r = to_homogenous(r)
+    b0 = to_homogenous(b0)
+    t0 = to_homogenous(t0)
+    vertical = to_homogenous(vertical)
+    m_tag = m/np.linalg.norm(m)
+    alpha = find_alpha(b, r, R, vertical, m_tag)
+    return -1*np.linalg.norm(np.cross(b0, t0))/(np.dot(m_tag, b0)*np.linalg.norm(np.cross(vertical, t0)*alpha))
+
+
+
