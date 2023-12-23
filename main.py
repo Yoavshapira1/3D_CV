@@ -62,8 +62,8 @@ if __name__ == "__main__":
     # H = 166
     # t0 = (451, 462)
     name = path.split('/')[-1].split(".")[0]
-    path = f"input_files/{name}/{name}.txt"
-    h1, h2, vertical = extract_points_from_text(path)
+    input_path = f"input_files/{name}/{name}.txt"
+    h1, h2, vertical = extract_points_from_text(input_path)
     b, r = choose_coordinates(image=img, message="Please choose the bottom and top points of your reference object.")
     print(f"the top point is {r} and the bottom point is {b}")
     b0, t0 = choose_coordinates(image=img, message="Please choose the bottom and top points of the object you "
