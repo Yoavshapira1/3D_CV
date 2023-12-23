@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 
 from utilities import plot_and_wait, draw_line_on_img
-import json
 from clustering import find_clusters, D_proj_vec, seg_to_line, seg_to_line_vec
 from geometry import to_non_homogenous
 
@@ -53,6 +52,7 @@ def find_vertical_point(clusters, qs=None):
     angles = np.array(angles)
     return angles.argmin()
 
+
 def find_vanishing_points(img, plot_detected=False, iter=15, th=50, segmentetion_algorithm="Hough" , quant=5):
 
     # create blank background for plot the lines
@@ -60,15 +60,15 @@ def find_vanishing_points(img, plot_detected=False, iter=15, th=50, segmentetion
 
     plot_and_wait(img)
 
-    # Edges
-    edges = cv2.Canny(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 250, 300, apertureSize=3)
-    plot_and_wait(edges)
     if segmentetion_algorithm.upper() == "LSD":
         lsd = cv2.createLineSegmentDetector(2, quant=quant)
         lines, width, prec, nfa = lsd.detect(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
         q = create_q_mat(nfa)
 
     elif segmentetion_algorithm.upper() == "Hough".upper():
+        # Edges
+        edges = cv2.Canny(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 250, 300, apertureSize=3)
+        plot_and_wait(edges)
         # Probabilistic
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, th, maxLineGap=25, minLineLength=10)
         q = np.array([1. for _ in lines])
@@ -91,11 +91,11 @@ def find_vanishing_points(img, plot_detected=False, iter=15, th=50, segmentetion
 
     v_points = final_points(clusters)
     idx = find_vertical_point(clusters)
-    h1, h2 = [v_points[i] for i in range(len(v_points)) if i != idx]
+    h1, h2 = [to_non_homogenous(v_points[i]) for i in range(len(v_points)) if i != idx]
 
-    draw_line_on_img(img, to_non_homogenous(h1), to_non_homogenous(h2), color=(255,255,255), thickness=3, show=True)
+    draw_line_on_img(img, h1, h2, color=(255,255,255), thickness=3, show=True)
 
-    return h1, h2, v_points[idx]
+    return h1, h2, to_non_homogenous(v_points[idx])
 
 
 
