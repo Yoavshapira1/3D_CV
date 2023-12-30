@@ -25,7 +25,7 @@
 clear
 close all
 
-img_in =  '..\Jaffa\Glz\Glz_resized.jpeg'; % input image
+img_in =  '..\pics\azrielli.jpg'; % input image
 
 % Extract file name and extension
 [~, name, ext] = fileparts(img_in);
